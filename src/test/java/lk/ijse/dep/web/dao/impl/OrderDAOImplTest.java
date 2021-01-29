@@ -35,7 +35,7 @@ public class OrderDAOImplTest {
         }
     }
 
-    @Before
+    /*@Before
     public void prepareBeforeTest() throws Exception {
         connection = pool.getConnection();
         connection.setAutoCommit(false);
@@ -43,7 +43,7 @@ public class OrderDAOImplTest {
         customerDAOImpl = new CustomerDAOImpl();
         orderDAOImpl.setConnection(connection);
         customerDAOImpl.setConnection(connection);
-    }
+    }*/
 
     @After
     public void finalizeAfterTest() throws SQLException {
@@ -52,11 +52,11 @@ public class OrderDAOImplTest {
         connection.close();
     }
 
-    @Test
+    /*@Test
     public void saveOrder() throws Exception {
         customerDAOImpl.save(new Customer("C007","Kasun","Galle"));
         assertTrue(orderDAOImpl.save
                 (new Order("OD005",new Date(System.currentTimeMillis()),"C007")));
         assertNotNull(orderDAOImpl.get("OD005"));
-    }
+    }*/
 }
