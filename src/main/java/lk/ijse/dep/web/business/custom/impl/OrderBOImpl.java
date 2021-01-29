@@ -3,6 +3,7 @@ package lk.ijse.dep.web.business.custom.impl;
 import lk.ijse.dep.web.business.custom.OrderBO;
 import lk.ijse.dep.web.dao.DAOFactory;
 import lk.ijse.dep.web.dao.DAOTypes;
+import lk.ijse.dep.web.dao.custom.CustomerDAO;
 import lk.ijse.dep.web.dao.custom.ItemDAO;
 import lk.ijse.dep.web.dao.custom.OrderDAO;
 import lk.ijse.dep.web.dao.custom.OrderDetailDAO;
@@ -11,6 +12,7 @@ import lk.ijse.dep.web.entity.Item;
 import lk.ijse.dep.web.entity.Order;
 import lk.ijse.dep.web.entity.OrderDetail;
 
+import javax.persistence.EntityManager;
 import java.sql.Connection;
 import java.sql.Date;
 import java.util.List;
@@ -21,7 +23,8 @@ public class OrderBOImpl implements OrderBO {
     private OrderDAO orderDAO;
     private OrderDetailDAO orderDetailDAO;
     private ItemDAO itemDAO;
-    private Connection connection;
+    private CustomerDAO customerDAO;
+    private EntityManager entityManager;
 
     public OrderBOImpl() {
         orderDAO = DAOFactory.getInstance().getDAO(DAOTypes.ORDER);
@@ -30,58 +33,42 @@ public class OrderBOImpl implements OrderBO {
     }
 
     @Override
-    public void setConnection(Connection connection) throws Exception {
-        this.connection = connection;
-        orderDAO.setConnection(connection);
-        orderDetailDAO.setConnection(connection);
-        itemDAO.setConnection(connection);
+    public void setEntityManager(EntityManager entityManager) throws Exception {
+        this.entityManager = entityManager;
+        orderDAO.setEntityManager(entityManager);
+        orderDetailDAO.setEntityManager(entityManager);
+        itemDAO.setEntityManager(entityManager);
+        customerDAO.setEntityManager(entityManager);
     }
 
     @Override
-    public boolean placeOrder(OrderDTO dto) throws Exception {
-        connection.setAutoCommit(false);
+    public void placeOrder(OrderDTO dto) throws Exception {
+        entityManager.getTransaction().begin();
         try {
-            boolean result = false;
-
             /* 1. Saving the order */
-            result = orderDAO.save(new Order(dto.getOrderId(), Date.valueOf(dto.getOrderDate()), dto.getCustomerId()));
-
-            if (!result){
-                throw new RuntimeException("Failed to complete the transaction");
-            }
+            orderDAO.save(new Order(dto.getOrderId(), Date.valueOf(dto.getOrderDate()), customerDAO.get(dto.getCustomerId())));
 
             /* 2. Saving Order Details -> Updating the stock */
             List<OrderDetail> orderDetails = dto.getOrderDetails().stream().
                     map(detail -> new OrderDetail(dto.getOrderId(), detail.getItemCode(), detail.getQty(), detail.getUnitPrice()))
                     .collect(Collectors.toList());
             for (OrderDetail orderDetail : orderDetails) {
-                result = orderDetailDAO.save(orderDetail);
-
-                if (!result){
-                    throw new RuntimeException("Failed to complete the transaction");
-                }
+                orderDetailDAO.save(orderDetail);
 
                 /* 3. Let's update the stock */
                 Item item = itemDAO.get(orderDetail.getOrderDetailPK().getItemCode());
-                if (item.getQtyOnHand() - orderDetail.getQty() < 0){
+                if (item.getQtyOnHand() - orderDetail.getQty() < 0) {
                     throw new RuntimeException("Invalid stock");
                 }
                 item.setQtyOnHand(item.getQtyOnHand() - orderDetail.getQty());
-                result = itemDAO.update(item);
-
-                if (!result){
-                    throw new RuntimeException("Failed to complete the transaction");
-                }
+                itemDAO.update(item);
             }
 
-            connection.commit();
-            return true;
+            entityManager.getTransaction().commit();
 
         }catch (Throwable t){
-            connection.rollback();
+            entityManager.getTransaction().rollback();
             throw t;
-        }finally {
-            connection.setAutoCommit(true);
         }
     }
 
