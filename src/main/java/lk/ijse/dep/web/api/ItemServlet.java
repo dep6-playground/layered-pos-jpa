@@ -54,6 +54,8 @@ public class ItemServlet extends HttpServlet {
 
         } catch (Exception e) {
             throw new RuntimeException(e);
+        }finally {
+            entityManager.close();
         }
     }
 
@@ -85,6 +87,8 @@ public class ItemServlet extends HttpServlet {
             throw new HttpResponseException(400, "Failed to read the JSON", exp);
         } catch (Exception e) {
             throw new RuntimeException(e);
+        }finally {
+            entityManager.close();
         }
     }
 
@@ -103,6 +107,8 @@ public class ItemServlet extends HttpServlet {
 
         } catch (Throwable t) {
             ResponseExceptionUtil.handle(t, resp);
+        }finally {
+            entityManager.close();
         }
     }
 
@@ -132,6 +138,8 @@ public class ItemServlet extends HttpServlet {
             throw new HttpResponseException(400, "Failed to read the JSON", exp);
         } catch (Exception e) {
             throw new RuntimeException(e);
+        }finally {
+            entityManager.close();
         }
 
     }

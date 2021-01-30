@@ -59,6 +59,8 @@ public class OrderServlet extends HttpServlet {
             throw new HttpResponseException(400, "Failed to read the JSON", exp);
         } catch (Throwable e) {
             throw new RuntimeException(e);
+        }finally {
+            entityManager.close();
         }
 
     }
